@@ -1,4 +1,3 @@
-// app/(app)/_layout.tsx
 // Layout del área protegida de la app.
 // Solo usuarios autenticados llegan aquí.
 
