@@ -24,7 +24,7 @@ import { useAuth } from '../../src/hooks/useAuth';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Estado del modal — todo en un objeto para manejarlo limpiamente
+// Estado del modal
 interface ModalState {
   visible: boolean;
   type: ModalType;

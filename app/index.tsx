@@ -21,8 +21,7 @@ export default function Index() {
     // 'idle' y 'loading' = todavía verificando, esperamos
     if (status === 'authenticated') {
       router.replace('/(app)/dashboard' as Href);
-      // replace en lugar de push: no queremos que el usuario
-      // pueda volver al index con el botón "atrás"
+      // replace en lugar de push: no volver al index con el botón "atrás"
     } else if (status === 'unauthenticated' || status === 'error') {
       router.replace('/(auth)/login' as Href);
     }
