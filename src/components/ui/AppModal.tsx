@@ -1,20 +1,10 @@
-// src/components/ui/AppModal.tsx
-// Modal reutilizable para toda la app.
-// Tipos: 'error' | 'success' | 'warning' | 'info'
-// Se usa en cualquier pantalla, no solo en login.
-
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import {
-    Animated,
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated, Modal, StyleSheet,
+  Text, TouchableOpacity, View,
 } from 'react-native';
 import { BORDER_RADIUS, COLORS, FONTS, SHADOWS, SPACING } from '../../constants/theme';
 
-// Tipos posibles del modal — cada uno tiene ícono y color propio
 export type ModalType = 'error' | 'success' | 'warning' | 'info';
 
 interface AppModalProps {
@@ -22,13 +12,12 @@ interface AppModalProps {
   type: ModalType;
   title: string;
   message: string;
-  confirmText?: string;   // Texto del botón principal (default: 'Entendido')
-  cancelText?: string;    // Texto botón secundario (si lo hay)
+  confirmText?: string;
+  cancelText?: string;
   onConfirm: () => void;
-  onCancel?: () => void;  // Si no se pasa, no muestra botón cancelar
+  onCancel?: () => void;
 }
 
-// Configuración visual por tipo de modal
 const MODAL_CONFIG: Record<ModalType, {
   icon: string;
   color: string;
@@ -67,13 +56,11 @@ export function AppModal({
   onCancel,
 }: AppModalProps) {
 
-  // Animación de escala — el modal "aparece" con un efecto suave
   const scaleAnim = useRef(new Animated.Value(0.85)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
-      // Cuando se abre: animar hacia tamaño normal
       Animated.parallel([
         Animated.spring(scaleAnim, {
           toValue: 1,
@@ -88,7 +75,6 @@ export function AppModal({
         }),
       ]).start();
     } else {
-      // Reset para la próxima vez que se abra
       scaleAnim.setValue(0.85);
       opacityAnim.setValue(0);
     }
@@ -101,32 +87,22 @@ export function AppModal({
       visible={visible}
       transparent
       animationType="none"
-      // animationType="none" porque manejamos la animación manualmente
-      // con Animated para más control
       statusBarTranslucent
-      // statusBarTranslucent: el modal cubre también la barra de estado
     >
-      {/* Fondo oscuro semitransparente */}
       <Animated.View style={[styles.overlay, { opacity: opacityAnim }]}>
         <TouchableOpacity
           style={StyleSheet.absoluteFill}
           activeOpacity={1}
           onPress={onCancel ?? onConfirm}
-          // Tocar fuera del modal lo cierra
         />
 
-        {/* Contenido del modal */}
-        <Animated.View
-          style={[
-            styles.container,
-            { transform: [{ scale: scaleAnim }] },
-          ]}
-        >
-          {/* Ícono circular */}
-          <View style={[
-            styles.iconCircle,
-            { backgroundColor: config.bgColor },
-          ]}>
+        <Animated.View style={[
+          styles.container,
+          { transform: [{ scale: scaleAnim }] },
+        ]}>
+
+          {/* Ícono */}
+          <View style={[styles.iconCircle, { backgroundColor: config.bgColor }]}>
             <Text style={[styles.iconText, { color: config.color }]}>
               {config.icon}
             </Text>
@@ -142,7 +118,6 @@ export function AppModal({
             cancelText ? styles.btnRowDouble : styles.btnRowSingle,
           ]}>
 
-            {/* Botón cancelar (opcional) */}
             {cancelText && onCancel && (
               <TouchableOpacity
                 style={styles.btnCancel}
@@ -153,7 +128,6 @@ export function AppModal({
               </TouchableOpacity>
             )}
 
-            {/* Botón confirmar */}
             <TouchableOpacity
               style={[
                 styles.btnConfirm,
@@ -177,7 +151,6 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(8, 80, 65, 0.5)',
-    // Color del overlay con tono verde oscuro de tu paleta
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.xl,
@@ -200,11 +173,11 @@ const styles = StyleSheet.create({
   },
   iconText: {
     fontSize: 28,
-    fontWeight: FONTS.weights.bold,
+    fontWeight: '700',
   },
   title: {
     fontSize: FONTS.sizes.lg,
-    fontWeight: FONTS.weights.bold,
+    fontWeight: '700',
     color: COLORS.text.primary,
     textAlign: 'center',
     marginBottom: SPACING.sm,
@@ -237,7 +210,7 @@ const styles = StyleSheet.create({
   },
   btnCancelText: {
     fontSize: FONTS.sizes.md,
-    fontWeight: FONTS.weights.semibold,
+    fontWeight: '600',
     color: COLORS.text.secondary,
   },
   btnConfirm: {
@@ -254,7 +227,7 @@ const styles = StyleSheet.create({
   },
   btnConfirmText: {
     fontSize: FONTS.sizes.md,
-    fontWeight: FONTS.weights.bold,
+    fontWeight: '700',
     color: COLORS.white,
   },
 });
