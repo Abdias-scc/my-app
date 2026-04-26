@@ -3,11 +3,12 @@
 // Se usa tanto en el dashboard (versión compacta) como en la
 // pantalla de facturas (versión expandida con botón de subir).
 
+import { useRouter } from 'expo-router';
 import { FileCheck, FilePlus, FileText, Upload } from 'lucide-react-native';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BORDER_RADIUS, COLORS, FONTS, SPACING } from '../../constants/theme';
 import { OdooInvoice } from '../../types';
-
+  
 interface InvoiceItemProps {
   invoice: OdooInvoice;
   expanded?: boolean;        // true = muestra detalle y botón subir
@@ -65,6 +66,8 @@ export function InvoiceItem({
   onPress,
 }: InvoiceItemProps) {
 
+  const router = useRouter();
+
   const state = STATE_CONFIG[invoice.payment_state as keyof typeof STATE_CONFIG]
     ?? STATE_CONFIG.not_paid;
 
@@ -73,7 +76,7 @@ export function InvoiceItem({
   return (
     <TouchableOpacity
       style={styles.container}
-      onPress={onPress}
+      onPress={() => router.push(`/(app)/invoice-detail?id=${invoice.id}`)}
       activeOpacity={onPress ? 0.7 : 1}
     >
       <View style={styles.row}>
@@ -95,7 +98,15 @@ export function InvoiceItem({
               {state.label}
             </Text>
           </View>
+          {invoice.mobile_voucher_state === 'pending_review' && (
+          <View style={[styles.badge, { backgroundColor: '#EBF5FB' }]}>
+            <Text style={[styles.badgeText, { color: '#2980B9' }]}>
+              En revisión
+            </Text>
+          </View>
+          )}
         </View>
+        
 
         {/* Monto */}
         <Text style={[styles.amount, { color: state.color }]}>

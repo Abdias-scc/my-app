@@ -1,4 +1,3 @@
-// BottomNav.tsx
 // Barra de navegación inferior compartida por todas las pantallas.
 // Componente reutilizable — se usa en dashboard, facturas, subir y perfil.
 // Recibe la ruta activa como prop para resaltar el ítem correcto.

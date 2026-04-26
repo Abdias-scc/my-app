@@ -1,24 +1,18 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
+import type { Href } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Camera, FileText, ImageIcon, Upload, X } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text, TouchableOpacity,
-  View
+  ActivityIndicator, Image, ScrollView,
+  StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppModal, ModalType } from '../../src/components/ui/AppModal';
 import { BottomNav } from '../../src/components/ui/BottomNav';
 import {
-  BORDER_RADIUS,
-  COLORS,
-  FONTS,
-  SHADOWS,
-  SPACING,
+  BORDER_RADIUS, COLORS, FONTS, SHADOWS, SPACING,
 } from '../../src/constants/theme';
 import { useAuth } from '../../src/hooks/useAuth';
 import { useInvoices } from '../../src/hooks/useInvoices';
@@ -37,7 +31,10 @@ const MODAL_HIDDEN: ModalState = {
 };
 
 const readImageAsBase64 = async (uri: string): Promise<string> => {
-  const base64 = await FileSystem.readAsStringAsync(uri, {
+  const fileName = uri.split('/').pop() ?? 'image.jpg';
+  const destUri = FileSystem.cacheDirectory + fileName;
+  await FileSystem.copyAsync({ from: uri, to: destUri });
+  const base64 = await FileSystem.readAsStringAsync(destUri, {
     encoding: 'base64',
   });
   return base64;
@@ -45,22 +42,28 @@ const readImageAsBase64 = async (uri: string): Promise<string> => {
 
 export default function UploadScreen() {
   const { user } = useAuth();
-  const { invoices } = useInvoices(user?.partnerId ?? null);
+  const router = useRouter();
+  const { invoices, refresh } = useInvoices(user?.partnerId ?? null);
 
-  // Solo facturas pendientes — no tiene sentido subir
-  // comprobante de una factura ya pagada
   const pendingInvoices = invoices.filter(
-    inv => inv.payment_state !== 'paid'
-  );
+  inv => inv.payment_state !== 'paid'
+    && inv.mobile_voucher_state !== 'pending_review'
+    // ← facturas con comprobante en revisión no aparecen aquí
+);
 
-  const [selectedInvoice, setSelectedInvoice] = useState<OdooInvoice | null>(
-    pendingInvoices[0] ?? null
-  );
+  const [selectedInvoice, setSelectedInvoice] = useState<OdooInvoice | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string>('image/jpeg');
   const [uploading, setUploading] = useState(false);
   const [modal, setModal] = useState<ModalState>(MODAL_HIDDEN);
+
+  // Seleccionar primera factura pendiente cuando carguen
+  useEffect(() => {
+    if (pendingInvoices.length > 0 && !selectedInvoice) {
+      setSelectedInvoice(pendingInvoices[0]);
+    }
+  }, [pendingInvoices]);
 
   const showModal = (type: ModalType, title: string, message: string) => {
     setModal({ visible: true, type, title, message });
@@ -68,54 +71,46 @@ export default function UploadScreen() {
 
   const hideModal = () => setModal(MODAL_HIDDEN);
 
-  // ── Solicitar permisos y abrir cámara ────────────────
-const handleCamera = async () => {
-  const { status } = await ImagePicker.requestCameraPermissionsAsync();
-  if (status !== 'granted') {
-    showModal('warning', 'Permiso requerido', 'Necesitamos acceso a tu cámara.');
-    return;
-  }
+  const handleCamera = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      showModal('warning', 'Permiso requerido', 'Necesitamos acceso a tu cámara.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+      base64: false,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const uri = result.assets[0].uri;
+      const base64 = await readImageAsBase64(uri);
+      setImageUri(uri);
+      setImageBase64(base64);
+      setMimeType(result.assets[0].mimeType ?? 'image/jpeg');
+    }
+  };
 
-  const result = await ImagePicker.launchCameraAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    quality: 0.7,
-    base64: false, // ← cambiamos a false, lo leemos manualmente
-  });
+  const handleGallery = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      showModal('warning', 'Permiso requerido', 'Necesitamos acceso a tu galería.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+      base64: false,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const uri = result.assets[0].uri;
+      const base64 = await readImageAsBase64(uri);
+      setImageUri(uri);
+      setImageBase64(base64);
+      setMimeType(result.assets[0].mimeType ?? 'image/jpeg');
+    }
+  };
 
-  if (!result.canceled && result.assets[0]) {
-    const uri = result.assets[0].uri;
-    const base64 = await readImageAsBase64(uri);
-    setImageUri(uri);
-    setImageBase64(base64);
-    setMimeType(result.assets[0].mimeType ?? 'image/jpeg');
-  }
-};
-
-
-  // ── Abrir galería ────────────────────────────────────
-const handleGallery = async () => {
-  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (status !== 'granted') {
-    showModal('warning', 'Permiso requerido', 'Necesitamos acceso a tu galería.');
-    return;
-  }
-
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    quality: 0.7,
-    base64: false, // ← igual aquí
-  });
-
-  if (!result.canceled && result.assets[0]) {
-    const uri = result.assets[0].uri;
-    const base64 = await readImageAsBase64(uri);
-    setImageUri(uri);
-    setImageBase64(base64);
-    setMimeType(result.assets[0].mimeType ?? 'image/jpeg');
-  }
-};
-
-  // ── Enviar comprobante a Odoo ────────────────────────
   const handleUpload = async () => {
     if (!selectedInvoice) {
       showModal('warning', 'Sin factura', 'Selecciona una factura primero.');
@@ -133,7 +128,6 @@ const handleGallery = async () => {
     setUploading(true);
     try {
       const fileName = `comprobante_${selectedInvoice.name.replace(/\//g, '_')}.jpg`;
-
       await uploadVoucher({
         invoiceId: selectedInvoice.id,
         invoiceName: selectedInvoice.name,
@@ -143,7 +137,8 @@ const handleGallery = async () => {
         mimeType,
       });
 
-      // Éxito — limpiamos el estado
+      await refresh();
+
       setImageUri(null);
       setImageBase64(null);
 
@@ -163,7 +158,6 @@ const handleGallery = async () => {
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
 
-      {/* ── Header ─────────────────────────────────── */}
       <View style={styles.header}>
         <Text style={styles.title}>Subir comprobante</Text>
         <Text style={styles.subtitle}>Adjunta tu pago a una factura</Text>
@@ -174,8 +168,6 @@ const handleGallery = async () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-
-        {/* ── Selector de factura ─────────────────── */}
         {pendingInvoices.length === 0 ? (
           <View style={styles.noInvoicesBox}>
             <FileText size={32} color={COLORS.primaryLight} strokeWidth={1.5} />
@@ -200,9 +192,7 @@ const handleGallery = async () => {
                   <View style={styles.invoiceOptionLeft}>
                     <FileText
                       size={14}
-                      color={selectedInvoice?.id === inv.id
-                        ? COLORS.white
-                        : COLORS.primary}
+                      color={selectedInvoice?.id === inv.id ? COLORS.white : COLORS.primary}
                       strokeWidth={2}
                     />
                     <Text style={[
@@ -222,13 +212,11 @@ const handleGallery = async () => {
               ))}
             </View>
 
-            {/* ── Zona de imagen ───────────────────── */}
             <Text style={[styles.sectionLabel, { marginTop: SPACING.md }]}>
               COMPROBANTE
             </Text>
 
             {!imageUri ? (
-              // Sin imagen — zona de upload
               <View style={styles.uploadZone}>
                 <Upload size={36} color={COLORS.primaryLight} strokeWidth={1.5} />
                 <Text style={styles.uploadTitle}>Selecciona tu comprobante</Text>
@@ -237,7 +225,6 @@ const handleGallery = async () => {
                 </Text>
               </View>
             ) : (
-              // Con imagen — preview
               <View style={styles.previewCard}>
                 <Image
                   source={{ uri: imageUri }}
@@ -253,7 +240,6 @@ const handleGallery = async () => {
               </View>
             )}
 
-            {/* ── Botones cámara / galería ──────────── */}
             <View style={styles.btnRow}>
               <TouchableOpacity
                 style={styles.btnCamera}
@@ -276,7 +262,6 @@ const handleGallery = async () => {
               </TouchableOpacity>
             </View>
 
-            {/* ── Botón enviar ─────────────────────── */}
             {imageUri && (
               <TouchableOpacity
                 style={[styles.submitBtn, uploading && styles.submitBtnDisabled]}
@@ -305,7 +290,12 @@ const handleGallery = async () => {
         type={modal.type}
         title={modal.title}
         message={modal.message}
-        onConfirm={hideModal}
+        onConfirm={() => {
+          hideModal();
+          if (modal.type === 'success') {
+            router.replace('/(app)/invoices' as Href);
+          }
+        }}
       />
 
     </SafeAreaView>

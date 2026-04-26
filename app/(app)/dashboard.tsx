@@ -1,3 +1,5 @@
+import type { Href } from 'expo-router';
+import { useRouter } from 'expo-router';
 import {
   ActivityIndicator, RefreshControl,
   ScrollView, StyleSheet,
@@ -13,6 +15,8 @@ import { BORDER_RADIUS, COLORS, FONTS, SPACING } from '../../src/constants/theme
 import { useAuth } from '../../src/hooks/useAuth';
 import { useInvoices } from '../../src/hooks/useInvoices';
 import { formatCurrency } from '../../src/services/odoo/invoiceService';
+
+const router = useRouter();
 
 export default function DashboardScreen() {
   const { user } = useAuth();
@@ -104,6 +108,7 @@ export default function DashboardScreen() {
             key={invoice.id}
             invoice={invoice}
             expanded={false}
+            onPress={() => router.push(`/(app)/invoice-detail?id=${invoice.id}` as Href)}
           />
         ))}
 

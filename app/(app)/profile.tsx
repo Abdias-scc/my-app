@@ -1,7 +1,7 @@
 import type { Href } from 'expo-router';
 import { useRouter } from 'expo-router';
 import { ChevronRight, CreditCard, LogOut, User } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppModal } from '../../src/components/ui/AppModal';
@@ -23,10 +23,16 @@ const MENU_ITEMS = [
 ];
 
 export default function ProfileScreen() {
-  const { user, logout } = useAuth();
+  const { user, logout, status } = useAuth();
   const router = useRouter();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const firstName = user?.name?.split(' ')[0] ?? 'Cliente';
+
+  useEffect(() => {
+  if (status === 'unauthenticated') {
+    router.replace('/(auth)/login' as Href);
+  }
+}, [status]);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>

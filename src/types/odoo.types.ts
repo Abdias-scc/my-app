@@ -5,9 +5,9 @@
 
 // Estructura base de cualquier respuesta JSON-RPC
 export interface OdooJsonRpcResponse<T> {
-  jsonrpc: string;   // Siempre "2.0"
+  jsonrpc: string;
   id: number | null;
-  result?: T;        // Datos reales si todo salió bien
+  result?: T;
   error?: {
     code: number;
     message: string;
@@ -15,24 +15,43 @@ export interface OdooJsonRpcResponse<T> {
   };
 }
 
-// Datos que devuelve Odoo al autenticarse correctamente
 export interface OdooSession {
-  uid: number;        // ID numérico del usuario: 7
-  name: string;       // Nombre: "Juan Pérez"
-  partner_id: number; // ID del contacto vinculado
-  session_id: string; // Cookie de sesión
-  db: string;         // Base de datos
+  uid: number;
+  name: string;
+  partner_id: number;
+  session_id: string;
+  db: string;
 }
 
-// Factura de cliente (modelo account.move)
 export interface OdooInvoice {
   id: number;
-  name: string;            // "INV/2024/0001"
+  name: string;
   state: 'draft' | 'posted' | 'cancel';
   payment_state: 'not_paid' | 'in_payment' | 'paid' | 'partial' | 'reversed';
-  amount_total: number;    // Total de la factura
-  amount_residual: number; // Saldo pendiente (0 si está pagada)
-  invoice_date: string;    // "2024-01-15"
-  invoice_date_due: string;// "2024-02-15"
-  partner_id: [number, string]; // [42, "Juan Pérez"] — así devuelve Odoo los Many2one
+  amount_total: number;
+  amount_residual: number;
+  invoice_date: string;
+  invoice_date_due: string;
+  partner_id: [number, string];
+  mobile_voucher_state?: 'none' | 'pending_review' | 'approved';
+}
+
+// Línea individual de factura (producto)
+export interface OdooInvoiceLine {
+  id: number;
+  name: string;           // Nombre del producto/servicio
+  quantity: number;       // Cantidad
+  price_unit: number;     // Precio unitario
+  price_subtotal: number; // Subtotal sin impuestos
+  price_total: number;    // Total con impuestos
+}
+
+// Detalle completo de una factura
+export interface OdooInvoiceDetail extends OdooInvoice {
+  invoice_line_ids: number[];
+  lines: OdooInvoiceLine[];
+  amount_untaxed: number;  // Subtotal sin impuestos
+  amount_tax: number;      // Total impuestos
+  narration: string;       // Notas de la factura
+  currency_id: [number, string]; // [id, símbolo]
 }

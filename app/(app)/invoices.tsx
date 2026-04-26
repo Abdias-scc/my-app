@@ -16,15 +16,16 @@ import { BORDER_RADIUS, COLORS, FONTS, SPACING } from '../../src/constants/theme
 import { useAuth } from '../../src/hooks/useAuth';
 import { useInvoices } from '../../src/hooks/useInvoices';
 
-type FilterType = 'all' | 'pending' | 'paid';
+const router = useRouter();
+
+type FilterType = 'all' | 'pending' | 'review' | 'paid';
 
 const FILTERS: { key: FilterType; label: string }[] = [
   { key: 'all', label: 'Todas' },
   { key: 'pending', label: 'Pendientes' },
+  { key: 'review', label: 'En revisión' },
   { key: 'paid', label: 'Pagadas' },
 ];
-
-const router = useRouter();
 
 export default function InvoicesScreen() {
   const { user } = useAuth();
@@ -34,7 +35,13 @@ export default function InvoicesScreen() {
   const [filter, setFilter] = useState<FilterType>('all');
 
   const filtered = invoices.filter((inv) => {
-    if (filter === 'pending') return inv.payment_state !== 'paid';
+    if (filter === 'pending') {
+      return inv.payment_state !== 'paid'
+        && inv.mobile_voucher_state !== 'pending_review';
+    }
+    if (filter === 'review') {
+      return inv.mobile_voucher_state === 'pending_review';
+    }
     if (filter === 'paid') return inv.payment_state === 'paid';
     return true;
   });
@@ -102,16 +109,14 @@ export default function InvoicesScreen() {
         )}
 
         {filtered.map((invoice) => (
-  <InvoiceItem
-    key={invoice.id}
-    invoice={invoice}
-    expanded
-    onUpload={() => {
-      router.push('/(app)/upload' as Href);
-      // En la siguiente fase pasaremos el invoiceId como parámetro
-    }}
-  />
-))}
+          <InvoiceItem
+            key={invoice.id}
+            invoice={invoice}
+            expanded
+            onPress={() => router.push(`/(app)/invoice-detail?id=${invoice.id}` as Href)}
+            onUpload={() => router.push('/(app)/upload' as Href)}
+          />
+        ))}
       </ScrollView>
 
       <BottomNav />
@@ -143,7 +148,7 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
   },
   pill: {
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
     borderRadius: BORDER_RADIUS.full,
     backgroundColor: COLORS.white,
