@@ -5,10 +5,11 @@
 import type { Href } from 'expo-router';
 import { usePathname, useRouter } from 'expo-router';
 import {
-    FileText,
-    LayoutGrid,
-    Upload,
-    User,
+  CreditCard,
+  FileText,
+  LayoutGrid,
+  Upload,
+  User,
 } from 'lucide-react-native';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { COLORS, SPACING } from '../../constants/theme';
@@ -24,6 +25,11 @@ const NAV_ITEMS = [
     label: 'Facturas',
     icon: FileText,
     route: '/(app)/invoices',
+  },
+  {
+    label: 'Pagar',
+    icon: CreditCard,
+    route: '/(app)/pay',
   },
   {
     label: 'Subir',

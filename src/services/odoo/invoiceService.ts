@@ -2,6 +2,8 @@
 // Consulta facturas reales del cliente autenticado en Odoo.
 // Modelo: account.move — el modelo estándar de facturas en Odoo.
 
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { OdooInvoice, OdooInvoiceDetail, OdooInvoiceLine } from '../../types/odoo.types';
 import { logger } from '../../utils/logger';
 import { odooRpc } from './odooClient';
@@ -135,4 +137,40 @@ export function formatCurrency(amount: number): string {
     currency: 'COP',
     minimumFractionDigits: 0,
   }).format(amount);
+}
+
+export async function downloadInvoicePdf(
+  invoiceId: number,
+  invoiceName: string
+): Promise<void> {
+
+  const result = await odooRpc<{
+    success: boolean;
+    pdf_base64?: string;
+    filename?: string;
+    error?: string;
+  }>(
+    '/mobile/invoice_pdf',
+    { invoice_id: invoiceId }
+  );
+
+  if (!result.success || !result.pdf_base64) {
+    throw new Error(result.error ?? 'Error al generar el PDF');
+  }
+
+  const fileUri = FileSystem.cacheDirectory + (result.filename ?? 'factura.pdf');
+
+  await FileSystem.writeAsStringAsync(fileUri, result.pdf_base64, {
+    encoding: 'base64',
+  });
+
+  const canShare = await Sharing.isAvailableAsync();
+  if (canShare) {
+    await Sharing.shareAsync(fileUri, {
+      mimeType: 'application/pdf',
+      dialogTitle: 'Descargar factura',
+    });
+  } else {
+    throw new Error('Tu dispositivo no soporta compartir archivos');
+  }
 }
