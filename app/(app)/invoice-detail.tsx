@@ -5,8 +5,9 @@ import {
     CheckCircle,
     ChevronLeft,
     Clock,
+    Download,
     FileText,
-    Upload,
+    Upload
 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import {
@@ -18,7 +19,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BORDER_RADIUS, COLORS, FONTS, SHADOWS, SPACING } from '../../src/constants/theme';
-import { fetchInvoiceDetail, formatCurrency } from '../../src/services/odoo/invoiceService';
+import { downloadInvoicePdf, fetchInvoiceDetail, formatCurrency } from '../../src/services/odoo/invoiceService';
 import { OdooInvoiceDetail } from '../../src/types/odoo.types';
 
 // Configuración de colores según estado de pago
@@ -62,6 +63,13 @@ export default function InvoiceDetailScreen() {
 
   const isPending = invoice?.payment_state !== 'paid';
 
+// Estado para el botón
+const [downloading, setDownloading] = useState(false);
+
+    function showModal(arg0: string, arg1: string, message: string) {
+        throw new Error('Function not implemented.');
+    }
+
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
 
@@ -91,6 +99,32 @@ export default function InvoiceDetailScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
+        <TouchableOpacity
+        style={styles.downloadBtn}
+        onPress={async () => {
+            if (!invoice) return;
+            setDownloading(true);
+            try {
+            await downloadInvoicePdf(invoice.id, invoice.name);
+            } catch (err) {
+            const message = err instanceof Error ? err.message : 'Error al descargar';
+            showModal('error', 'Error al descargar', message);
+            } finally {
+            setDownloading(false);
+            }
+        }}
+        disabled={downloading}
+        activeOpacity={0.85}
+        >
+        {downloading ? (
+            <ActivityIndicator color={COLORS.primary} size="small" />
+        ) : (
+            <>
+            <Download size={16} color={COLORS.primary} strokeWidth={2.5} />
+            <Text style={styles.downloadBtnText}>Descargar factura PDF</Text>
+            </>
+        )}
+        </TouchableOpacity>
 
           {/* Card principal — número y estado */}
           <View style={styles.card}>
@@ -212,13 +246,12 @@ export default function InvoiceDetailScreen() {
             )}
           </View>
 
-          {/* Notas de la factura */}
-          {invoice.narration ? (
+            {invoice.narration && typeof invoice.narration === 'string' ? (
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Notas</Text>
-              <Text style={styles.narration}>{invoice.narration}</Text>
+                <Text style={styles.sectionTitle}>Notas</Text>
+                <Text style={styles.narration}>{invoice.narration}</Text>
             </View>
-          ) : null}
+            ) : null}
 
           {/* Botón subir comprobante */}
           {isPending && invoice.mobile_voucher_state !== 'pending_review' && (
@@ -459,4 +492,21 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.md,
     fontWeight: '700',
   },
+  downloadBtn: {
+  backgroundColor: COLORS.white,
+  borderRadius: BORDER_RADIUS.md,
+  padding: SPACING.md,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: SPACING.sm,
+  borderWidth: 1.5,
+  borderColor: COLORS.primary,
+  ...SHADOWS.sm,
+},
+downloadBtnText: {
+  color: COLORS.primary,
+  fontSize: FONTS.sizes.md,
+  fontWeight: '700',
+},
 });

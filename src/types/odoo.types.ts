@@ -53,5 +53,5 @@ export interface OdooInvoiceDetail extends OdooInvoice {
   amount_untaxed: number;  // Subtotal sin impuestos
   amount_tax: number;      // Total impuestos
   narration: string;       // Notas de la factura
-  currency_id: [number, string]; // [id, símbolo]
+  currency_id: [number, string] | false; // [id, símbolo]
 }

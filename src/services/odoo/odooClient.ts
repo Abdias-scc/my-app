@@ -26,8 +26,6 @@ export async function odooRpc<T>(
     headers: {
       'Content-Type': 'application/json',
     },
-    // credentials: 'include' causa el error CORS en web
-    // En móvil no hay CORS así que no lo necesitamos tampoco
     body: JSON.stringify(body),
   });
 
